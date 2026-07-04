@@ -1,5 +1,52 @@
 # Laboratorio: Simulación de Fallos en Redis Streams (auditoria-group)
 
+Este repositorio contiene dos proyectos Spring Boot independientes para trabajar con Redis Streams:
+
+- **`producer/`** — Publica eventos de transferencia en el stream `banco.transferencias`
+- **`consumer/`** — Consume eventos desde el grupo `auditoria-group`
+
+## Requisitos
+
+- Java 21+
+- Redis corriendo en `localhost:6379`
+- Maven
+
+## Cómo ejecutar
+
+### Productor
+
+```bash
+cd producer
+mvn spring-boot:run
+```
+
+Para configurar host/puerto:
+
+```bash
+cd producer
+mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dredis.host=127.0.0.1 -Dredis.port=6379"
+```
+
+### Consumidor
+
+```bash
+cd consumer
+mvn spring-boot:run
+```
+
+Para configurar host/puerto:
+
+```bash
+cd consumer
+mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dredis.host=127.0.0.1 -Dredis.port=6379"
+```
+
+**Nota:** Para simular una caída (como se documenta abajo), ejecute el consumidor, deténgalo abruptamente (Ctrl+C) antes de que haga `XACK`, y luego revise los mensajes pendientes con `XPENDING` desde `redis-cli`.
+
+---
+
+## Laboratorio: Simulación de Fallos en Redis Streams (auditoria-group)
+
 Este documento registra los comandos utilizados en `redis-cli` para implementar el tercer consumidor (`auditoria-group`) y simular la caída de un nodo antes de confirmar el procesamiento de un evento.
 
 ---
@@ -28,7 +75,7 @@ XADD banco.transferencias * eventType TransferenciaCreada eventId evt-2002 trans
 
 ## 3. Consumo Inicial y Simulación de Caída
 
-El `consumidor-auditor-1` lee el evento nuevo utilizando la opción `>`. **No se ejecuta `XACK**` para simular que el servicio sufrió un fallo inesperado justo después de recibir el payload:
+El `consumidor-auditor-1` lee el evento nuevo utilizando la opción `>`. **No se ejecuta `XACK`** para simular que el servicio sufrió un fallo inesperado justo después de recibir el payload:
 
 ```
 XREADGROUP GROUP auditoria-group consumidor-auditor-1 COUNT 1 BLOCK 5000 STREAMS banco.transferencias >
